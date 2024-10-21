@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "A package to interact with the Rightbrain AI Tasks API.",
   "type": "module",
-  "main": "dist/index.cjs.js",
+  "main": "dist/index.js",
   "browser": "dist/index.iife.js",
   "exports": "./dist/index.js",
   "scripts": {

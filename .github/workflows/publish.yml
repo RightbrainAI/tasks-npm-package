@@ -23,6 +23,7 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
+      - run: npm install
       - run: npm run lint
       - run: npm run tests
       - run: npm run docs
@@ -50,9 +51,10 @@ jobs:
       - run: |
           git config user.name "GitHub Actions"
           git config user.email noreply@github.com
-      - run: num run lint
-      - run: num run tests
-      - run: num run build:full
+      - run: npm install
+      - run: npm run lint
+      - run: npm run tests
+      - run: npm run build:full
       - run: |
           npm version "${GITHUB_REF##*/}"
           npm publish

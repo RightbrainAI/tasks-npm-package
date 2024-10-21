@@ -25,7 +25,7 @@ jobs:
             ${{ runner.os }}-node-
       - run: npm install
       - run: npm run lint
-      - run: npm run tests
+      - run: npm run test
       - run: npm run docs
   build:
     name: Build bundle and publish
@@ -53,7 +53,7 @@ jobs:
           git config user.email noreply@github.com
       - run: npm install
       - run: npm run lint
-      - run: npm run tests
+      - run: npm run test
       - run: npm run build:full
       - run: |
           npm version "${GITHUB_REF##*/}"

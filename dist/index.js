@@ -1,83 +1,226 @@
 /**
- * Returns true of a given parameter is not null and not undefined.
- * @param any any input is feasible
- * @return {boolean} true if defined, otherwise false
+ * The IdentityClient class. Uses an Access Token to find the Org and Project Identity to which it belongs.
  */
-const exists = any => any !== null && typeof any !== 'undefined';
-
-/**
- * The possible states of the supertool.
- * @private
- */
-const superToolStates = {
-  great: 'great',
-  cool: 'cool',
-  awesome: 'awesome',
-  swag: 'swag'
-};
-
-/**
- * The super tool class. Holds a state and implements the execute command.
- */
-
-class SuperTool {
-  /**
-   * The possible states of the SuperTool.
-   * @return {{great: string, cool: string, awesome: string, swag: string}}
-   */
-
-  static get states () {
-    return superToolStates
+class IdentityClient {
+  constructor (apiHost) {
+    this.apiHost = apiHost;
   }
 
   /**
-   * Validates a state. To be valid, the value needs to be part of the {SuperTool.states}.
-   * Throws an Error if invalid. Returns void / undefined if passed.
-   * @param value The state candidate to be validated.
-   * @throws if state is not a valid state
+   * Returns the Org and Project ID for a given access token.
+   * @param accessToken An access token
+   * @return {object}
    */
-
-  static validateState (value) {
-    if (!superToolStates[value]) {
-      throw new Error(`Invalid state: ${value}`)
+  async GetIdentity (accessToken) {
+    if (!accessToken) {
+      throw new Error(
+        'cannot get identity, expected access token to not be empty'
+      )
     }
-  }
-
-  /**
-   * Constructor initializes the state. If none is given, it defaults to {'great'}.
-   * @param state one of the SuperTool.state values
-   * @throws if state is not a valid state
-   */
-
-  constructor ({ state = SuperTool.states.great } = {}) {
-    SuperTool.validateState(state);
-    this._state = state;
-  }
-
-  /**
-   * Validates and sets a new state value if given and returns the updated value. If no defined value is given it just returns the
-   * current state value.
-   * @param value {String|undefined} optional state to be set.
-   * @return {String} the current state value
-   */
-
-  state (value) {
-    if (exists(value)) {
-      SuperTool.validateState(value);
-      this._state = value;
+    const res = await fetch(`https://${this.apiHost}/api/v1/whoami`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    if (res.status !== 200) {
+      throw new Error(
+        `cannot get identity, expected 200 but got ${res.status}: ${res.statusText}`
+      )
     }
-    return this._state
-  }
-
-  /**
-   * Executes with the current internal state.
-   * @return {string} the execution including the current state.
-   */
-
-  execute () {
-    return `I feel ${this._state}!`
+    const details = await res.json();
+    if (!details.client) {
+      throw new Error(
+        'cannot get identity, expected response to contain client details'
+      )
+    }
+    return details.client
   }
 }
 
-export { SuperTool };
+/**
+ * The TokenClient class. Performs a Client Credentials OAuth2 Grant for an given Client ID and Secret.
+ */
+class TokenClient {
+  constructor (authHost, clientID, clientSecret) {
+    this.authHost = authHost;
+  }
+
+  /**
+   * Create an Access Token
+   * @param clientID The OAuth Client App ID.
+   * @param clientSecret The OAuth Client App Secret.
+   * @return {string}
+   */
+  async Create (clientID, clientSecret) {
+    const res = await fetch(`https://${this.authHost}/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${this.getBasicAuthorizationHeader(clientID, clientSecret)}`
+      },
+      body: this.getFormDataWithGrantType('client_credentials')
+    });
+    if (res.status !== 200) {
+      throw new Error(
+        `cannot create token, expected 200 but got ${res.status}: ${res.statusText}`
+      )
+    }
+    const data = await res.json();
+    if (!data.access_token) {
+      throw new Error(
+        'cannot create token, expected response to contain access token'
+      )
+    }
+    return data.access_token
+  }
+
+  /**
+   * @private
+   */
+  getBasicAuthorizationHeader (clientID, clientSecret) {
+    return btoa(`${clientID}:${clientSecret}`)
+  }
+
+  /**
+   * @private
+   */
+  getFormDataWithGrantType (grantType) {
+    const formData = new FormData();
+    formData.append('grant_type', grantType);
+    return formData
+  }
+}
+
+const maxTaskInputLength = 128000;
+
+/**
+ * The TasksClient class. Performs various Tasks CRUD operations against the Rightbrain AI API.
+ */
+class TasksClient {
+  constructor (tokenClient, identityClient, apiHost, clientID, clientSecret) {
+    this.tokenClient = tokenClient;
+    this.identityClient = identityClient;
+    this.apiHost = apiHost;
+    this.clientID = clientID;
+    this.clientSecret = clientSecret;
+  }
+
+  /**
+   * Creates a new Task
+   * @param definition A task definition as required by the API
+   * @return {object}
+   */
+  async Create (definition) {
+    const accessToken = await this.tokenClient.Create(this.clientID, this.clientSecret);
+    const response = await fetch(await this.getTaskCreateURL(accessToken), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(definition)
+    });
+    if (response.status !== 200) {
+      throw new Error(
+        `Error creating Task, expected status code of 200, but got ${response.status}: ${response.statusText}`
+      )
+    }
+    return await response.json()
+  }
+
+  /**
+   * Runs a Task
+   * @param taskID The ID of the Task to be ran.
+   * @param taskInput The Task Input required by the Task.
+   * @param taskRevision If supplied, the revision of the Task to be ran.
+   * @return {object}
+   */
+  async Run (taskID, taskInput, taskRevision) {
+    const data = JSON.stringify(taskInput);
+    this.assertTaskInputSize(data);
+    const accessToken = await this.authClient.CreateToken();
+    const response = await fetch(await this.getTaskRunURL(accessToken, taskID, taskRevision), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      },
+      body: this.getTaskInputFormData(data)
+    });
+    if (response.status !== 200) {
+      throw new Error(
+        `Error running Task, expected status code of 200, but got ${response.status}: ${response.statusText}`
+      )
+    }
+    return await response.json()
+  }
+
+  /**
+   * @private
+   */
+  async getTaskCreateURL (accessToken) {
+    const identity = await this.getIdentity(accessToken);
+    return `https://${this.apiHost}/api/v1/org/${identity.org_id}/project/${identity.project_id}/task`
+  }
+
+  /**
+   * @private
+   */
+  async getTaskRunURL (accessToken, taskID, taskRevision) {
+    const identity = await this.getIdentity(accessToken);
+    let url = `https://${this.apiHost}/api/v1/org/${identity.org_id}/project/${identity.project_id}/task/${taskID}/run`;
+    if (taskRevision) {
+      url += `?revision=${taskRevision}`;
+    }
+    return url
+  }
+
+  /**
+   * @private
+   */
+  assertTaskInputSize (taskInput) {
+    if (taskInput.length > maxTaskInputLength) {
+      throw new Error(`Error running task, max task input is ${maxTaskInputLength} but input was ${taskInput.length}`)
+    }
+  }
+
+  /**
+   * @private
+   */
+  getTaskInputFormData (taskInput) {
+    const formData = new FormData();
+    formData.append('task_input', taskInput);
+    return formData
+  }
+
+  /**
+   * @private
+   */
+  async getIdentity (accessToken) {
+    if (!this.cachedIdentity) {
+      this.cachedIdentity = await this.identityClient.GetIdentity(accessToken);
+    }
+    return this.cachedIdentity
+  }
+}
+
+const defaultTasksClientOptions = {
+  apiHost: 'app.rightbrain.ai',
+  authHost: 'oauth.rightbrain.ai',
+  clientID: null,
+  clientSecret: null
+};
+
+/**
+ * Creates a new Tasks Client
+ * @param options An object of options to replace the defaults.
+ * @return {object}
+ */
+function NewDefaultTasksClient (options) {
+  options = { ...defaultTasksClientOptions, ...options };
+  const identityClient = new IdentityClient(options.apiHost);
+  const tokenClient = new TokenClient(options.authHost);
+  return new TasksClient(tokenClient, identityClient, options.apiHost, options.clientID, options.clientSecret)
+}
+
+export { NewDefaultTasksClient };
 //# sourceMappingURL=index.js.map

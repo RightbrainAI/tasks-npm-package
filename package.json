@@ -1,7 +1,7 @@
 {
-  "name": "my-awesome-package",
-  "version": "1.1.0",
-  "description": "Look at this great package. Lots of stuff.",
+  "name": "@RightbrainAI/tasks-npm-package",
+  "version": "0.0.0",
+  "description": "A package to interact with the Rightbrain AI Tasks API.",
   "type": "module",
   "main": "dist/index.cjs.js",
   "browser": "dist/index.iife.js",
@@ -37,28 +37,27 @@
     "ignore": [
       "docs/",
       "node_modules/",
-      "dist/"
+      "dist/",
+      "tests/"
     ]
   },
   "targets": "> 0.25%, not dead",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/jankapunkt/npm-package-template.git"
+    "url": "git+https://github.com/RightbrainAI/tasks-npm-package.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "keywords": [
     "npm",
     "package",
-    "template",
     "javascript"
   ],
-  "author": "Jan Küster <info@jankuester.com>",
-  "funding": {
-    "type": "PayPal",
-    "url": "https://paypal.me/kuesterjan"
-  },
+  "author": "RightbrainAI",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jankapunkt/npm-package-template/issues"
+    "url": "https://github.com/RightbrainAI/tasks-npm-package/issues"
   },
   "engines": {
     "node": ">= 14.x"
@@ -70,7 +69,7 @@
     "LICENSE",
     "CHANGELOG.md"
   ],
-  "homepage": "https://github.com/jankapunkt/npm-package-template#readme",
+  "homepage": "https://docs.rightbrain.ai/",
   "devDependencies": {
     "@babel/cli": "^7.23.0",
     "@babel/core": "^7.23.2",
@@ -81,11 +80,15 @@
     "c8": "^8.0.1",
     "chai": "^4.3.10",
     "cross-env": "7.0.3",
+    "jest": "^29.7.0",
     "jsdoc": "^4.0.2",
     "jsdoc-to-markdown": "^8.0.0",
     "mocha": "^10.2.0",
     "rollup": "^4.0.2",
     "snazzy": "^9.0.0",
     "standard": "^17.1.0"
+  },
+  "dependencies": {
+    "fetch": "^1.1.0"
   }
 }

@@ -1,4 +1,4 @@
-# Contributing to `my-awesome-package`
+# Contributing to `RightbrainAI/tasks-npm-package`
 
 Thank you for your interest in this project and your aims to improving it.
 This guide will give you the most important info on how to contribute properly

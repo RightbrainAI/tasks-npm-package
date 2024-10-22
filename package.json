@@ -5,7 +5,10 @@
   "type": "module",
   "main": "dist/index.js",
   "browser": "dist/index.iife.js",
-  "exports": "./dist/index.js",
+  "exports": {
+    "import": "./dist/index.js",
+    "require": "./dist/index.cjs"
+  },
   "scripts": {
     "lint": "standard | snazzy",
     "lint:fix": "standard --fix | snazzy",

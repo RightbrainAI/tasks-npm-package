@@ -426,4 +426,4 @@ function NewDefaultTasksClient(options) {
   return new TasksClient(tokenClient, identityClient, options.apiHost, options.clientID, options.clientSecret);
 }
 exports.NewDefaultTasksClient = NewDefaultTasksClient;
-//# sourceMappingURL=index.cjs.js.map
+//# sourceMappingURL=index.cjs.map

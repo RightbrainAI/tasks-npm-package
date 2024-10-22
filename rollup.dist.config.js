@@ -12,15 +12,15 @@ export default [
         file: 'dist/index.js',
         format: 'es',
         plugins: [getBabelOutputPlugin({ presets: ['@babel/preset-env'] })],
-        sourcemap: true,
+        sourcemap: true
       },
       {
         file: 'dist/index.cjs',
         format: 'cjs',
         plugins: [getBabelOutputPlugin({ presets: ['@babel/preset-env'] })],
-        sourcemap: true,
-      },
-    ],
+        sourcemap: true
+      }
+    ]
   },
   {
     input: 'lib/index.js',
@@ -28,14 +28,14 @@ export default [
       file: 'dist/index.iife.js',
       format: 'iife',
       name: 'index',
-      sourcemap: true,
+      sourcemap: true
     },
     plugins: [
       commonjs(),
       babel({
         exclude: 'node_modules/**',
-        babelHelpers: 'bundled',
-      }),
-    ],
-  },
+        babelHelpers: 'bundled'
+      })
+    ]
+  }
 ]
